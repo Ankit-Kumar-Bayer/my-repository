@@ -50,7 +50,11 @@ jobs:
         project: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
 
     steps:
+      - name: checkout code
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
 
       - name: Run CI/CD
         run: |
