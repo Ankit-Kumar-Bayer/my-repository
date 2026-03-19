@@ -43,7 +43,7 @@ jobs:
 
         
 
-ci-cd:
+  ci-cd:
     needs: detect-changes
     if: needs.detect-changes.outputs.matrix != '[]'
     runs-on: ubuntu-latest
