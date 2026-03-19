@@ -1,1 +1,74 @@
+naem: Monorepo CI/CD (MAtrix)
 
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "A/**"
+      - "B/**"
+      - "C/**"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect xhanged folders
+        id: set-matrixrun 
+        run: |
+          changed=$(git diff --name-only ${{github.event.before}} ${{github.sha}})
+
+          project=()
+
+          if echo "$changed" | grep '^A/' >/dev/null;
+          then project+=('{"name":"A","action":""}')
+          fi
+
+          if echo="$changed" | grep '^B/' >/dev/null;
+          then project+=('{"name":"B","action":"deploy"}')
+          fi
+
+          if echo "$changed" | grep '^C/' >/dev/null;
+          then project+=('{"name":"C","action":"build-deploy"}')
+          fi
+
+          matrix=$(printf '%s\n' "${project[@]}" | jq-s.)
+
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+        
+
+ci-cd:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run CI/CD
+        run: |
+          echo "Project: ${{ matrix.project.name }}"
+          echo "Action: ${{ matrix.project.action }}"
+
+          cd ${{ matrix.project.name }}
+
+          if [ "${{ matrix.project.action }}" = "deploy" ]; then
+            echo "Deploying ${{ matrix.project.name }}"
+            # deploy commands here
+          fi
+
+          if [ "${{ matrix.project.action }}" = "build-deploy" ]; then
+            echo "Building ${{ matrix.project.name }}"
+            # build commands here
+            echo "Deploying ${{ matrix.project.name }}"
+            # deploy commands here
+          fi
