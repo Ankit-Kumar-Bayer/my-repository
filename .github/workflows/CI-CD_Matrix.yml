@@ -1,4 +1,4 @@
-naem: Monorepo CI/CD (MAtrix)
+name: Monorepo CI/CD (MAtrix)
 
 on:
   push:
