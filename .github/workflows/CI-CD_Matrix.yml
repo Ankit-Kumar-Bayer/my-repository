@@ -1,4 +1,4 @@
-name: Monorepo CI/CD (MAtrix)
+name: Monorepo CI/CD (Matrix)
 
 on:
   push:
@@ -14,35 +14,33 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-
+ 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect xhanged folders
-        id: set-matrixrun 
+      - name: Detect changed folders
+        id: set-matrix
         run: |
-          changed=$(git diff --name-only ${{github.event.before}} ${{github.sha}})
+          changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
 
-          project=()
+          projects=()
 
-          if echo "$changed" | grep '^A/' >/dev/null;
-          then project+=('{"name":"A","action":""}')
+          if echo "$changed" | grep '^a/' >/dev/null; then
+            projects+=('{"name":"a","action":"deploy"}')
           fi
 
-          if echo="$changed" | grep '^B/' >/dev/null;
-          then project+=('{"name":"B","action":"deploy"}')
+          if echo "$changed" | grep '^b/' >/dev/null; then
+            projects+=('{"name":"b","action":"deploy"}')
           fi
 
-          if echo "$changed" | grep '^C/' >/dev/null;
-          then project+=('{"name":"C","action":"build-deploy"}')
+          if echo "$changed" | grep '^c/' >/dev/null; then
+            projects+=('{"name":"c","action":"build-deploy"}')
           fi
 
-          matrix=$(printf '%s\n' "${project[@]}" | jq-s.)
-
+          matrix=$(printf '%s\n' "${projects[@]}" | jq -s .)
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-        
-
+  
   ci-cd:
     needs: detect-changes
     if: needs.detect-changes.outputs.matrix != '[]'
