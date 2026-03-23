@@ -16,7 +16,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -26,12 +26,18 @@ jobs:
         shell: bash
         run: |
           echo "Checking changed files..."
+          echo "--------------------------------"
 
+          # Handle first commit case
           if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             changed=$(git ls-files)
           else
             changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
           fi
+
+          echo "Git output:"
+          echo "$changed"
+          echo "--------------------------------"
 
           projects=()
 
@@ -47,7 +53,12 @@ jobs:
             projects+=('{"name":"C"}')
           fi
 
-          matrix=$(printf '%s\n' "${projects[@]}" | jq -s .)
+          # Create single-line JSON for GitHub output
+          matrix=$(printf '%s\n' "${projects[@]}" | jq -c -s .)
+
+          echo "Matrix value:"
+          echo "$matrix"
+
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   ci-cd:
@@ -61,7 +72,7 @@ jobs:
         project: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Restart build for changed project
@@ -75,8 +86,8 @@ jobs:
 
           cd ${{ matrix.project.name }}
 
-          echo "Running build for ${{ matrix.project.name }}"
+          echo "Building project ${{ matrix.project.name }}"
           # build commands here
 
-          echo "Deploying ${{ matrix.project.name }}"
+          echo "Deploying project ${{ matrix.project.name }}"
           # deploy commands here
