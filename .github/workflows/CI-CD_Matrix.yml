@@ -91,3 +91,5 @@ jobs:
 
           echo "Deploying project ${{ matrix.project.name }}"
           # deploy commands here
+
+          
