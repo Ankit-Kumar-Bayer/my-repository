@@ -14,63 +14,69 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
- 
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Detect changed folders
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed projects
         id: set-matrix
+        shell: bash
         run: |
-          changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          echo "Checking changed files..."
+
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            changed=$(git ls-files)
+          else
+            changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          fi
 
           projects=()
 
-          if echo "$changed" | grep '^a/' >/dev/null; then
-            projects+=('{"name":"a","action":"deploy"}')
+          if echo "$changed" | grep -q '^A/'; then
+            projects+=('{"name":"A"}')
           fi
 
-          if echo "$changed" | grep '^b/' >/dev/null; then
-            projects+=('{"name":"b","action":"deploy"}')
+          if echo "$changed" | grep -q '^B/'; then
+            projects+=('{"name":"B"}')
           fi
 
-          if echo "$changed" | grep '^c/' >/dev/null; then
-            projects+=('{"name":"c","action":"build-deploy"}')
+          if echo "$changed" | grep -q '^C/'; then
+            projects+=('{"name":"C"}')
           fi
 
           matrix=$(printf '%s\n' "${projects[@]}" | jq -s .)
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
-  
   ci-cd:
     needs: detect-changes
     if: needs.detect-changes.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
         project: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
 
     steps:
-      - name: checkout code
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-
-      - name: Run CI/CD
+      - name: Restart build for changed project
+        shell: bash
         run: |
+          echo "======================================"
           echo "Project: ${{ matrix.project.name }}"
-          echo "Action: ${{ matrix.project.action }}"
+          echo "Changes detected ✅"
+          echo "Restarting the build 🔄"
+          echo "======================================"
 
           cd ${{ matrix.project.name }}
 
-          if [ "${{ matrix.project.action }}" = "deploy" ]; then
-            echo "Deploying ${{ matrix.project.name }}"
-            # deploy commands here
-          fi
+          echo "Running build for ${{ matrix.project.name }}"
+          # build commands here
 
-          if [ "${{ matrix.project.action }}" = "build-deploy" ]; then
-            echo "Building ${{ matrix.project.name }}"
-            # build commands here
-            echo "Deploying ${{ matrix.project.name }}"
-            # deploy commands here
-          fi
+          echo "Deploying ${{ matrix.project.name }}"
+          # deploy commands here
